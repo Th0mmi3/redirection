@@ -2,8 +2,9 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
+    <!-- BELANGRIJK VOOR MOBIEL: Voorkomt inzoomen en scrollen tijdens het spelen -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Speedrunner - Framerate & Reset Fix</title>
+    <title>Neon Speedrunner - Mobile Happy Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Space+Mono:wght@700&display=swap');
         
@@ -11,13 +12,13 @@
             margin: 0; padding: 0; background-color: #05050a; color: white;
             font-family: 'Montserrat', sans-serif; display: flex;
             justify-content: center; align-items: center; height: 100vh; overflow: hidden;
-            touch-action: none;
+            touch-action: none; /* Voorkomt pull-to-refresh op mobiel */
         }
         
         #gameContainer {
             position: relative; 
             width: 100%; max-width: 900px; 
-            aspect-ratio: 900 / 520; 
+            aspect-ratio: 900 / 520; /* Zorgt dat de verhouding altijd klopt */
             height: auto;
             box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 0 4px #1a1a2e; 
             border-radius: 10px; overflow: hidden; background-color: #0b0b14;
@@ -81,11 +82,8 @@
         
         #musicToggle { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px; border-radius: 5px; cursor: pointer; z-index: 50; font-size: 10px; }
         #musicToggle:hover { background: rgba(255,255,255,0.2); }
-        
-        /* De nieuwe reset knop rechtsboven onder de muziek */
-        #resetToggle { position: absolute; top: 55px; right: 15px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px; border-radius: 5px; cursor: pointer; z-index: 50; font-size: 10px; }
-        #resetToggle:hover { background: rgba(255,255,255,0.2); }
 
+        /* --- MOBIELE CONTROLS STYLING --- */
         #mobileControls {
             position: absolute; bottom: 15px; left: 0; right: 0;
             display: none; justify-content: space-between; padding: 0 20px; z-index: 30;
@@ -94,14 +92,17 @@
         .touch-group { display: flex; gap: 12px; pointer-events: auto; }
         .touch-btn {
             width: clamp(55px, 12vw, 75px); height: clamp(55px, 12vw, 75px); 
-            background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.35); 
+            background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.4); 
             border-radius: 50%; color: white; font-size: clamp(22px, 5vw, 32px); font-weight: bold;
             display: flex; justify-content: center; align-items: center;
             backdrop-filter: blur(4px); -webkit-tap-highlight-color: transparent;
         }
-        .touch-btn:active { background: rgba(0, 255, 255, 0.35); border-color: #00ffff; }
+        .touch-btn:active { background: rgba(0, 255, 255, 0.4); border-color: #00ffff; }
 
-        @media (pointer: coarse) { #mobileControls { display: flex; } }
+        /* Laat controls alleen zien op schermen met een touchscreen */
+        @media (pointer: coarse) {
+            #mobileControls { display: flex; }
+        }
     </style>
 </head>
 <body>
@@ -109,7 +110,6 @@
     <div id="gameContainer">
         <div id="flash"></div>
         <button id="musicToggle" onclick="audio.toggleMusic()">🎵 Muziek: AAN</button>
-        <button id="resetToggle" class="hidden" onclick="if(game.state === 'PLAY') game.loadLevel()">🔄 Reset (R)</button>
 
         <div id="hud" class="hidden">
             <div class="hud-left">
@@ -122,6 +122,7 @@
             </div>
         </div>
 
+        <!-- Virtuele Touch Knoppen voor mobiel -->
         <div id="mobileControls" class="hidden">
             <div class="touch-group">
                 <div class="touch-btn" id="btnLeft">◀</div>
@@ -138,8 +139,8 @@
         <div id="startMenu" class="overlay">
             <h1>NEON SPEEDRUNNER</h1>
             <div class="controls">
-                <p>PC: Pijltjes/WASD = Lopen | Spatie = Springen | SHIFT = Dash | <span class="highlight">R = Reset Level</span></p>
-                <p style="margin-top: 5px; font-size: 16px;"><span class="highlight">BLAUWE ORB = SCHILD</span> &nbsp;|&nbsp; <span style="color:#00ffaa;">PAS OP VOOR LASERS!</span></p>
+                <p>PC: Pijltjes/WASD = Lopen | Spatie = Springen | SHIFT = Dash</p>
+                <p style="color:#00ffaa;">MOBIEL: Gebruik de virtuele knoppen op het scherm!</p>
             </div>
             <button class="btn" onclick="ui.showScreen('levelMenu'); audio.init();">START SPEL</button>
         </div>
@@ -166,14 +167,15 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- DATA & OPSLAG ---
 let saveData = { unlocked: 1, coins: 0, bestTimes: {} };
 try { 
-    const saved = localStorage.getItem('neonSpeedrunnerV4_FixSave');
+    const saved = localStorage.getItem('neonSpeedrunnerV3_1Save');
     if (saved) saveData = { ...saveData, ...JSON.parse(saved) }; 
 } catch(e) {}
 
 function saveGameData() {
-    try { localStorage.setItem('neonSpeedrunnerV4_FixSave', JSON.stringify(saveData)); } catch(e) {}
+    try { localStorage.setItem('neonSpeedrunnerV3_1Save', JSON.stringify(saveData)); } catch(e) {}
 }
 
 function formatTime(ms) {
@@ -182,6 +184,7 @@ function formatTime(ms) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${cents.toString().padStart(2, '0')}`;
 }
 
+// --- VROLIJKE MARIO/STARDEW AUDIO ENGINE ---
 const audio = {
     ctx: null, musicPlaying: true, nextNoteTime: 0, step: 0, 
     bassScale: [130.81, 174.61, 196.00, 196.00], 
@@ -212,18 +215,9 @@ const audio = {
         } else if (type === 'coin') {
             osc.type = 'sine'; osc.frequency.setValueAtTime(1200, t); osc.frequency.setValueAtTime(1800, t + 0.05);
             gain.gain.setValueAtTime(0.1, t); gain.gain.linearRampToValueAtTime(0, t + 0.2); osc.start(t); osc.stop(t + 0.2);
-        } else if (type === 'hit') { 
+        } else if (type === 'hit') {
             osc.type = 'square'; osc.frequency.setValueAtTime(100, t); osc.frequency.exponentialRampToValueAtTime(20, t + 0.2);
             gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2); osc.start(t); osc.stop(t + 0.2);
-        } else if (type === 'shield_break') { 
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, t); osc.frequency.exponentialRampToValueAtTime(100, t + 0.2);
-            gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2); osc.start(t); osc.stop(t + 0.2);
-        } else if (type === 'shield_pickup') { 
-            osc.type = 'sine'; osc.frequency.setValueAtTime(400, t); osc.frequency.exponentialRampToValueAtTime(800, t + 0.2);
-            gain.gain.setValueAtTime(0.2, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2); osc.start(t); osc.stop(t + 0.2);
-        } else if (type === 'shoot') { 
-            osc.type = 'square'; osc.frequency.setValueAtTime(600, t); osc.frequency.exponentialRampToValueAtTime(200, t + 0.1);
-            gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1); osc.start(t); osc.stop(t + 0.1);
         } else if (type === 'bounce') {
             osc.type = 'sine'; osc.frequency.setValueAtTime(200, t); osc.frequency.linearRampToValueAtTime(800, t + 0.3);
             gain.gain.setValueAtTime(0.2, t); gain.gain.linearRampToValueAtTime(0, t + 0.3); osc.start(t); osc.stop(t + 0.3);
@@ -264,6 +258,7 @@ const audio = {
     }
 };
 
+// --- INPUT HANDLER ---
 const keys = { right: false, left: false, up: false, shift: false };
 let upPressed = false; 
 
@@ -272,11 +267,6 @@ window.addEventListener('keydown', e => {
     if(e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
     if((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !e.repeat) { keys.up = true; upPressed = true; }
     if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') keys.shift = true;
-    
-    // NIEUW: De Reset knop binding
-    if((e.code === 'KeyR') && game.state === 'PLAY') {
-        game.loadLevel(); 
-    }
 });
 window.addEventListener('keyup', e => {
     if(e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
@@ -285,6 +275,7 @@ window.addEventListener('keyup', e => {
     if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') keys.shift = false;
 });
 
+// Mobiele Touch Knoppen
 function bindTouch(id, key, isJump = false) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -303,29 +294,136 @@ bindTouch('btnRight', 'right');
 bindTouch('btnJump', 'up', true);
 bindTouch('btnDash', 'shift');
 
-
+// --- CONSTANTEN & MAPS ---
 const T_SIZE = 40;
 const GRAV = 0.55;
 const MAX_FALL = 16;
 
 const LEVEL_MAPS = [
-    [ "                                             ", "                                           P ", "                                         ####", "         c   c                               ", "        #######                              ", "                             c c c           ", "                            #######          ", " @   c                                       ", "#######                                      ", "####### SSSS                                 ", ".............................................", "#############################################", "#############################################" ],
-    [ "                                             ", "                                         P   ", "                                       ##### ", "                                X X          ", "         X X X                               ", "                            X X              ", "                                             ", " @  X X                                      ", "####                  B                      ", "#### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS  ", "#############################################", "#############################################" ],
-    [ "                                             ", "                                             ", "                                         P   ", "                                        ###  ", "                                             ", "                         c                   ", "                                             ", "               c       ###                   ", "                                             ", "       c     ###                             ", " @                                           ", "#### ###               SSSSSSSSSSSSSSSSSSSS  ", "#############################################" ],
-    [ "                                             ", "                                             ", "  K                           W           P  ", " ###                        #####       #####", "          ==                                 ", "                                             ", "      W                  ==                  ", "    #####                                    ", "                                             ", "                 W                           ", " @             #####                         ", "##### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", "#############################################" ],
-    [ "                                             ", "     K                                       ", "   ####                           D        P ", "          SSSS                    D     #### ", "        ########                  D          ", "                     B            D          ", "    S  S          S#####S         D          ", "   ######        #########      #####        ", "                                             ", " S        S   S          S                   ", "###      #######        ###                  ", " @                              E            ", "#####  ######################################" ],
-    [ " P            c                     c        ", "###           X                     X        ", "                c                 c          ", "                X                 X        K ", "     c                            X       ###", "     X                                       ", "                  B                          ", "                #####       D                ", "      B                     D                ", "    #####                   D                ", " @                          D   E            ", "#### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", "#############################################" ],
-    [ "                                           P ", "                                         ### ", "                                       D     ", "   W               K                   D     ", "  ###             ###        W         D     ", "          ==                ###        D     ", "      W                                D     ", "     ###               ==            #####   ", "                                             ", " @           X X X                           ", "#### B                      B                ", "####SSS                   SSSSSSSSSSSSSSSSSSS", "#############################################" ],
-    [ "                                             ", "                                           P ", "               V                       ##### ", "                                             ", "             #####                           ", "                                 V           ", "                       F                     ", "                     #####                   ", "          ==                       ==        ", "                                             ", " @                                           ", "#####   SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", ".............................................", "#############################################" ],
-    [ "                                             ", "                                           P ", "                                         ####", "                                             ", "                            O                ", "           c              #####              ", "          ###                                ", "  @                                          ", "#####                W                       ", "#####              #####                     ", "##### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", "#############################################", "#############################################" ],
-    [ "                                             ", "                                           P ", "                                         ### ", "                                             ", "                                             ", "            Z                       Z        ", "          #####                   #####      ", "  @                                          ", "#####                                        ", "#####   SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", "#############################################", "#############################################", "#############################################" ],
-    [ "                                             ", "                                           P ", "                                        #### ", "         c             O                     ", " Z      ####         #####           Z       ", "####                               ####      ", "                                             ", "            B               B                ", "  @       #####           #####              ", "#####                                        ", "##### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", "#############################################", "#############################################" ],
-    [ "                                           P ", "                     V                   ### ", "  K                #####                     ", "####                               D         ", "         Z                         D         ", "       #####                       D         ", "                   O               D         ", "                 #####             D         ", "       B                           D         ", "  @  #####                   B     D         ", "###                        #####   D         ", "### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", "#############################################" ]
+    [
+        "                                             ",
+        "                                           P ",
+        "                                         ####",
+        "         c   c                               ",
+        "        #######                              ",
+        "                             c c c           ",
+        "                            #######          ",
+        " @   c                                       ",
+        "#######                                      ",
+        "####### SSSS                                 ",
+        "#############################################",
+        "#############################################"
+    ],
+    [
+        "                                             ",
+        "                                         P   ",
+        "                                       ##### ",
+        "                                X X          ",
+        "         X X X                               ",
+        "                            X X              ",
+        "                                             ",
+        " @  X X                                      ",
+        "####                  B                      ",
+        "#### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS  ",
+        "#############################################",
+        "#############################################"
+    ],
+    [
+        "                                             ",
+        "                                             ",
+        "                                         P   ",
+        "                                        ###  ",
+        "                                             ",
+        "                         c                   ",
+        "                                             ",
+        "               c       ###                   ",
+        "                                             ",
+        "       c     ###                             ",
+        " @                                           ",
+        "#### ###               SSSSSSSSSSSSSSSSSSSS  ",
+        "#############################################"
+    ],
+    [
+        "                                             ",
+        "                                             ",
+        "  K                           W           P  ",
+        " ###                        #####       #####",
+        "          ==                                 ",
+        "                                             ",
+        "      W                  ==                  ",
+        "    #####                                    ",
+        "                                             ",
+        "                 W                           ",
+        " @             #####                         ",
+        "##### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "#############################################"
+    ],
+    [
+        "                                             ",
+        "     K                                       ",
+        "   ####                           D        P ",
+        "          SSSS                    D     #### ",
+        "        ########                  D          ",
+        "                     B            D          ",
+        "    S  S          S#####S         D          ",
+        "   ######        #########      #####        ",
+        "                                             ",
+        " S        S   S          S                   ",
+        "###      #######        ###                  ",
+        " @                              E            ",
+        "#####  ######################################"
+    ],
+    [
+        " P            c                     c        ",
+        "###           X                     X        ",
+        "                c                 c          ",
+        "                X                 X        K ",
+        "     c                            X       ###",
+        "     X                                       ",
+        "                  B                          ",
+        "                #####       D                ",
+        "      B                     D                ",
+        "    #####                   D                ",
+        " @                          D   E            ",
+        "#### SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "#############################################"
+    ],
+    [
+        "                                           P ",
+        "                                         ### ",
+        "                                       D     ",
+        "   W               K                   D     ",
+        "  ###             ###        W         D     ",
+        "          ==                ###        D     ",
+        "      W                                D     ",
+        "     ###               ==            #####   ",
+        "                                             ",
+        " @           X X X                           ",
+        "#### B                      B                ",
+        "####SSS                   SSSSSSSSSSSSSSSSSSS",
+        "#############################################"
+    ],
+    [
+        "                                             ",
+        "                                           P ",
+        "               V                       ##### ",
+        "                                             ",
+        "             #####                           ",
+        "                                 V           ",
+        "                       F                     ",
+        "                     #####                   ",
+        "          ==                       ==        ",
+        "                                             ",
+        " @                                           ",
+        "#####   SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "#############################################"
+    ]
 ];
 
 function AABB(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
 function Lerp(a, b, t) { return a + (b - a) * t; }
 
+// --- ENTITEITEN ---
 class Particle {
     constructor(x, y, color, speedScale = 1, isSquare = false) {
         this.x = x; this.y = y; this.color = color; this.isSquare = isSquare;
@@ -333,13 +431,7 @@ class Particle {
         this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
         this.life = 1.0; this.decay = Math.random() * 0.03 + 0.015; this.size = Math.random() * 6 + 2;
     }
-    update(dtMult) { 
-        this.x += this.vx * dtMult; 
-        this.y += this.vy * dtMult; 
-        this.vy += GRAV * 0.4 * dtMult; 
-        this.life -= this.decay * dtMult; 
-        this.size *= (1 - 0.05 * dtMult); 
-    }
+    update() { this.x += this.vx; this.y += this.vy; this.vy += GRAV * 0.4; this.life -= this.decay; this.size *= 0.95; }
     draw(ctx) {
         ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color;
         if(this.isSquare) ctx.fillRect(this.x, this.y, this.size, this.size); else { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
@@ -349,7 +441,7 @@ class Particle {
 
 class FloatingText {
     constructor(x, y, text, color) { this.x = x; this.y = y; this.text = text; this.color = color; this.life = 1.0; this.vy = -1.5; }
-    update(dtMult) { this.y += this.vy * dtMult; this.life -= 0.02 * dtMult; }
+    update() { this.y += this.vy; this.life -= 0.02; }
     draw(ctx) {
         ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; ctx.font = "bold 16px 'Space Mono'";
         ctx.shadowBlur = 5; ctx.shadowColor = "#000"; ctx.fillText(this.text, this.x, this.y); ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
@@ -357,12 +449,20 @@ class FloatingText {
 }
 
 class Checkpoint {
-    constructor(x, y) { this.x = x * T_SIZE; this.y = y * T_SIZE - 20; this.w = 20; this.h = 60; this.active = false; }
+    constructor(x, y) {
+        this.x = x * T_SIZE; this.y = y * T_SIZE - 20;
+        this.w = 20; this.h = 60;
+        this.active = false;
+    }
     draw(ctx) {
         ctx.fillStyle = "#888"; ctx.fillRect(this.x + 8, this.y, 4, this.h);
         ctx.fillStyle = this.active ? "#00ffaa" : "#ff0055";
         ctx.shadowBlur = this.active ? 15 : 0; ctx.shadowColor = ctx.fillStyle;
-        ctx.beginPath(); ctx.moveTo(this.x + 12, this.y + 5); ctx.lineTo(this.x + 35, this.y + 15); ctx.lineTo(this.x + 12, this.y + 25); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(this.x + 12, this.y + 5);
+        ctx.lineTo(this.x + 35, this.y + 15);
+        ctx.lineTo(this.x + 12, this.y + 25);
+        ctx.fill();
         ctx.shadowBlur = 0;
     }
 }
@@ -370,24 +470,22 @@ class Checkpoint {
 class Block {
     constructor(x, y, type) {
         this.x = x * T_SIZE; this.y = y * T_SIZE; this.w = T_SIZE; this.h = T_SIZE;
-        this.type = type; this.hitTimer = 0; this.crumbleState = 0; this.crumbleTimer = 0; this.origX = this.x; this.origY = this.y;
+        this.type = type; this.hitTimer = 0; 
+        this.crumbleState = 0; this.crumbleTimer = 0; this.origX = this.x; this.origY = this.y;
         if(this.type === '=') { this.w = T_SIZE * 2; this.h = 15; this.time = Math.random()*100; this.vx = 0; }
     }
     triggerCrumble() { if(this.type === 'X' && this.crumbleState === 0) { this.crumbleState = 1; this.crumbleTimer = 20; audio.playSfx('crumble'); } }
-    update(dtMult) {
+    update() {
         if(this.type === 'X' && this.crumbleState === 1) {
-            this.crumbleTimer -= dtMult; 
-            this.x = this.origX + (Math.random() * 4 - 2); this.y = this.origY + (Math.random() * 4 - 2);
+            this.crumbleTimer--; this.x = this.origX + (Math.random() * 4 - 2); this.y = this.origY + (Math.random() * 4 - 2);
             if(this.crumbleTimer <= 0) { this.crumbleState = 2; audio.playSfx('hit'); for(let i=0; i<10; i++) game.spawnParticle(this.origX+20, this.origY+20, "#555", 1, true); }
         } else if (this.type === '=') {
-            this.time += 0.03 * dtMult; let nextX = this.origX + Math.sin(this.time) * 100; 
-            this.vx = nextX - this.x; // Geen dtMult hier nodig omdat dit een relatieve offset is die per frame is berekend
-            this.x = nextX;
+            this.time += 0.03; let nextX = this.origX + Math.sin(this.time) * 100; this.vx = nextX - this.x; this.x = nextX;
         }
     }
     draw(ctx) {
         if(this.crumbleState === 2) return; 
-        let dy = this.y - (this.hitTimer > 0 ? 4 : 0); if (this.hitTimer > 0) this.hitTimer--; // hitTimer loopt nog framebased, puur visueel
+        let dy = this.y - (this.hitTimer > 0 ? 4 : 0); if (this.hitTimer > 0) this.hitTimer--;
 
         if (this.type === '#') {
             let grad = ctx.createLinearGradient(this.x, dy, this.x, dy + this.h); grad.addColorStop(0, "#2a2a45"); grad.addColorStop(1, "#101020");
@@ -409,64 +507,9 @@ class Block {
     }
 }
 
-class Projectile {
-    constructor(x, y, dir) {
-        this.x = x; this.y = y; this.w = 12; this.h = 4;
-        this.vx = dir * 7; 
-        this.active = true;
-    }
-    update(dtMult) {
-        this.x += this.vx * dtMult;
-        for(let b of game.blocks) {
-            if (b.crumbleState !== 2 && AABB(this, b)) {
-                this.active = false;
-                for(let i=0; i<3; i++) game.spawnParticle(this.x, this.y, "#ff0055", 0.5);
-            }
-        }
-        if(this.x < game.camera.x - 200 || this.x > game.camera.x + 1100) this.active = false;
-    }
-    draw(ctx) {
-        ctx.fillStyle = "#ff0055"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff0055";
-        ctx.fillRect(this.x, this.y, this.w, this.h); ctx.shadowBlur = 0;
-        ctx.fillStyle = "#fff"; ctx.fillRect(this.x + 2, this.y + 1, this.w - 4, 2);
-    }
-}
-
-class Shooter {
-    constructor(x, y) {
-        this.x = x * T_SIZE; this.y = y * T_SIZE; this.w = T_SIZE; this.h = T_SIZE;
-        this.cooldown = Math.random() * 60; 
-    }
-    update(dtMult) {
-        if (this.cooldown > 0) this.cooldown -= dtMult;
-        
-        if(!game.player || game.player.isDead) return;
-
-        let distY = Math.abs(game.player.y - this.y);
-        let distX = game.player.x - this.x;
-        
-        if (distY < T_SIZE * 1.5 && Math.abs(distX) < 600 && this.cooldown <= 0) {
-            let dir = distX > 0 ? 1 : -1;
-            game.projectiles.push(new Projectile(this.x + this.w/2, this.y + 15, dir));
-            this.cooldown = 90; 
-            audio.playSfx('shoot');
-        }
-    }
-    draw(ctx) {
-        ctx.fillStyle = "#3a3a4c"; ctx.fillRect(this.x + 5, this.y + 10, 30, 30);
-        let dir = 1;
-        if(game.player && Math.abs(game.player.x - this.x) < 600) { dir = game.player.x < this.x ? -1 : 1; }
-        ctx.fillStyle = "#222"; 
-        if(dir === 1) ctx.fillRect(this.x + 20, this.y + 12, 25, 10); 
-        else ctx.fillRect(this.x - 5, this.y + 12, 25, 10); 
-        ctx.fillStyle = "#ff0055"; ctx.shadowBlur = 10; ctx.shadowColor = "#ff0055";
-        ctx.fillRect(this.x + 15, this.y + 15, 10, 4); ctx.shadowBlur = 0;
-    }
-}
-
 class Sawblade {
     constructor(x,y) { this.x = x * T_SIZE; this.y = y * T_SIZE; this.w = T_SIZE; this.h = T_SIZE; this.rot = 0; }
-    update(dtMult) { this.rot += 0.2 * dtMult; }
+    update() { this.rot += 0.2; }
     draw(ctx) {
         ctx.save(); ctx.translate(this.x + this.w/2, this.y + this.h/2); ctx.rotate(this.rot);
         ctx.fillStyle = "#ff0055"; ctx.shadowBlur = 15; ctx.shadowColor = "#ff0055";
@@ -488,7 +531,7 @@ class Spike {
 
 class Collectible {
     constructor(x, y, type) { this.x = x * T_SIZE + 10; this.y = y * T_SIZE + 10; this.w = 20; this.h = 20; this.type = type; this.active = true; this.hoverY = 0; this.time = Math.random() * 100; }
-    update(dtMult) { this.time += 0.1 * dtMult; this.hoverY = Math.sin(this.time) * 5; }
+    update() { this.time += 0.1; this.hoverY = Math.sin(this.time) * 5; }
     collect() {
         this.active = false;
         if (this.type === 'c') {
@@ -499,10 +542,6 @@ class Collectible {
             audio.playSfx('key'); game.triggerHitStop(5); game.hasKey = true;
             for(let i=0; i<20; i++) game.spawnParticle(this.x+10, this.y+10, "#00ffaa", 2);
             game.openDoors();
-        } else if (this.type === 'O') {
-            audio.playSfx('shield_pickup'); game.player.hasShield = true;
-            for(let i=0; i<15; i++) game.spawnParticle(this.x+10, this.y+10, "#00ffff", 2);
-            game.floatTexts.push(new FloatingText(this.x, this.y, "SHIELD!", "#00ffff"));
         }
         game.updateHUD();
     }
@@ -517,22 +556,17 @@ class Collectible {
             ctx.fillRect(this.x, drawY+6, 16, 6); ctx.beginPath(); ctx.arc(this.x+18, drawY+9, 8, 0, Math.PI*2); ctx.fill();
             ctx.fillRect(this.x+4, drawY+12, 4, 6); ctx.fillRect(this.x+10, drawY+12, 4, 6); ctx.shadowBlur = 0;
             ctx.fillStyle = "#05050a"; ctx.beginPath(); ctx.arc(this.x+18, drawY+9, 3, 0, Math.PI*2); ctx.fill();
-        } else if (this.type === 'O') { 
-            ctx.fillStyle = "rgba(0, 255, 255, 0.4)"; ctx.shadowBlur = 20; ctx.shadowColor = "#00ffff";
-            ctx.beginPath(); ctx.arc(this.x+10, drawY+10, 12, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = "#00ffff"; ctx.beginPath(); ctx.arc(this.x+10, drawY+10, 6, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(this.x+8, drawY+8, 2, 0, Math.PI*2); ctx.fill();
         }
     }
 }
 
 class Enemy {
     constructor(x, y) { this.x = x * T_SIZE; this.y = y * T_SIZE + 10; this.w = 30; this.h = 30; this.vx = -1.5; this.vy = 0; this.active = true; this.time = 0; }
-    update(dtMult) {
-        this.time += 0.1 * dtMult; this.vy += GRAV * dtMult; this.vy = Math.min(this.vy, MAX_FALL);
-        this.x += this.vx * dtMult;
+    update() {
+        this.time += 0.1; this.vy += GRAV; this.vy = Math.min(this.vy, MAX_FALL);
+        this.x += this.vx;
         for (let b of game.blocks) { if (b.crumbleState !== 2 && AABB(this, b)) { if (this.vx > 0) this.x = b.x - this.w; else this.x = b.x + b.w; this.vx *= -1; } }
-        this.y += this.vy * dtMult;
+        this.y += this.vy;
         for (let b of game.blocks) { if (b.crumbleState !== 2 && AABB(this, b)) { if (this.vy > 0) { this.y = b.y - this.h; this.vy = 0; } } }
         if (this.y > canvas.height) this.active = false;
     }
@@ -553,8 +587,8 @@ class FlyingEnemy {
         this.x = x * T_SIZE; this.y = y * T_SIZE; this.w = 30; this.h = 20; 
         this.origY = this.y; this.time = Math.random() * 100; this.active = true;
     }
-    update(dtMult) {
-        this.time += 0.05 * dtMult;
+    update() {
+        this.time += 0.05;
         this.y = this.origY + Math.sin(this.time) * 60;
     }
     die() {
@@ -582,22 +616,7 @@ class Player {
         this.trail = []; this.onWall = 0; this.facing = 1; 
         
         this.isDashing = false; this.dashFrames = 0; this.dashCooldown = 0;
-        this.canDoubleJump = true; 
-        this.hasShield = false; this.invulnTimer = 0;
-    }
-
-    takeDamage() {
-        if(this.invulnTimer > 0) return; 
-        if(this.hasShield) {
-            this.hasShield = false;
-            this.invulnTimer = 60; // Frame-based invulnerability is okay visually
-            this.vy = -8; 
-            audio.playSfx('shield_break');
-            game.screenShake = 5;
-            for(let i=0; i<20; i++) game.spawnParticle(this.x+13, this.y+13, "#00ffff", 2);
-        } else {
-            this.die();
-        }
+        this.canDoubleJump = true;
     }
 
     die() {
@@ -613,11 +632,11 @@ class Player {
             return; 
         }
 
-        if(this.invulnTimer > 0) this.invulnTimer--;
-
         for(let cp of game.checkpoints) {
             if(!cp.active && AABB(this, cp)) {
-                cp.active = true; game.spawnX = cp.x; game.spawnY = cp.y - 20; audio.playSfx('checkpoint');
+                cp.active = true; 
+                game.spawnX = cp.x; game.spawnY = cp.y - 20; 
+                audio.playSfx('checkpoint');
                 game.floatTexts.push(new FloatingText(cp.x, cp.y, "CHECKPOINT!", "#00ffaa"));
                 for(let i=0; i<15; i++) game.spawnParticle(cp.x+10, cp.y+10, "#00ffaa", 2);
             }
@@ -698,25 +717,22 @@ class Player {
                         for(let i=0; i<4; i++) game.spawnParticle(this.x+13, this.y+26, "#fff", 0.3); 
                     }
                 }
-                else if (this.vy < 0) { this.y = b.y + b.h; this.vy = 0; }
+                else if (this.vy < 0) { this.y = b.y + b.h; this.vy = 0; b.hit(); }
             }
         }
 
         if (this.y > canvas.height) this.die();
 
-        for (let s of game.spikes) { if (AABB(this, s)) this.takeDamage(); }
-        for (let s of game.saws) { if (AABB(this, s)) this.takeDamage(); }
+        for (let s of game.spikes) { if (AABB(this, s)) this.die(); }
+        for (let s of game.saws) { if (AABB(this, s)) this.die(); }
         for (let c of game.collectibles) { if (c.active && AABB(this, c)) c.collect(); }
-        for (let p of game.projectiles) { if (p.active && AABB(this, p)) { p.active = false; this.takeDamage(); } }
         
         let allEnemies = game.enemies.concat(game.flyingEnemies);
         for (let e of allEnemies) {
             if (e.active && AABB(this, e)) {
-                if (this.vy > 0 && this.y + this.h < e.y + 20 && this.invulnTimer === 0) { 
-                    e.die(); this.vy = -9; this.scaleX = 0.5; this.scaleY = 1.5; this.canDoubleJump = true;
-                } 
+                if (this.vy > 0 && this.y + this.h < e.y + 20) { e.die(); this.vy = -9; this.scaleX = 0.5; this.scaleY = 1.5; this.canDoubleJump = true;} 
                 else if (this.isDashing) { e.die(); } 
-                else { this.takeDamage(); }
+                else { this.die(); }
             }
         }
         
@@ -725,8 +741,6 @@ class Player {
 
     draw(ctx) {
         if (this.isDead && this.y > canvas.height) return;
-
-        if(this.invulnTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
 
         for(let t of this.trail) { 
             ctx.fillStyle = t.isDash ? `rgba(255, 0, 85, ${t.life * 0.7})` : `rgba(0, 255, 255, ${t.life * 0.4})`; 
@@ -742,12 +756,6 @@ class Player {
         ctx.fillStyle = "#fff"; ctx.fillRect(-6, -6, 12, 12);
         ctx.fillStyle = "#05050a"; let lookX = this.facing * 4;
         ctx.fillRect(lookX - 4, -2, 3, 4); ctx.fillRect(lookX + 1, -2, 3, 4);
-        
-        if(this.hasShield) {
-            ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2);
-            ctx.strokeStyle = "rgba(0, 255, 255, 0.8)"; ctx.lineWidth = 3; ctx.stroke();
-            ctx.fillStyle = "rgba(0, 255, 255, 0.2)"; ctx.fill();
-        }
 
         ctx.restore();
     }
@@ -761,12 +769,7 @@ const ui = {
             document.getElementById(id).classList.remove('hidden');
         } else {
             document.getElementById('hud').classList.remove('hidden');
-            document.getElementById('resetToggle').classList.remove('hidden');
-            
-            // Toon knoppen ALLEEN als we op een touchscreen apparaat zitten EN in de game
-            if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) {
-                document.getElementById('mobileControls').classList.remove('hidden');
-            }
+            document.getElementById('mobileControls').classList.remove('hidden');
         }
 
         if(id === 'levelMenu') this.renderLevelGrid();
@@ -788,15 +791,14 @@ const ui = {
 // --- MAIN ENGINE ---
 const game = {
     state: 'MENU', currentLevelIdx: 0,
-    player: null, blocks: [], spikes: [], saws: [], enemies: [], flyingEnemies: [], shooters: [], projectiles: [], checkpoints: [], collectibles: [], particles: [], floatTexts: [], portal: null,
-    camera: { x: 0, y: 0 }, screenShake: 0, hitStopFrames: 0, hasKey: false, bgParticles: [], startTime: 0, currentTime: 0, spawnX: 0, spawnY: 0,
+    player: null, blocks: [], spikes: [], saws: [], enemies: [], flyingEnemies: [], checkpoints: [], collectibles: [], particles: [], floatTexts: [], portal: null,
+    camera: { x: 0, y: 0 }, screenShake: 0, hitStopFrames: 0, hasKey: false, bgParticles: [], startTime: 0, currentTime: 0,
     
-    // Framerate onafhankelijkheid variabelen
-    lastTime: 0, accumulator: 0, timeStep: 1000 / 60,
+    // Spawn locaties voor als je afgaat
+    spawnX: 0, spawnY: 0,
 
     init: function() {
         for(let i=0; i<80; i++) this.bgParticles.push({ x: Math.random() * 2000, y: Math.random() * canvas.height, s: Math.random() * 2 + 1, a: Math.random() * 0.5 });
-        this.lastTime = performance.now();
         requestAnimationFrame(this.loop.bind(this));
     },
 
@@ -814,7 +816,7 @@ const game = {
     spawnParticle: function(x, y, color, speed=1, isSquare=false) { this.particles.push(new Particle(x, y, color, speed, isSquare)); },
 
     loadLevel: function() {
-        this.blocks = []; this.spikes = []; this.saws = []; this.enemies = []; this.flyingEnemies = []; this.shooters = []; this.projectiles = []; this.checkpoints = []; this.collectibles = []; this.particles = []; this.floatTexts = [];
+        this.blocks = []; this.spikes = []; this.saws = []; this.enemies = []; this.flyingEnemies = []; this.checkpoints = []; this.collectibles = []; this.particles = []; this.floatTexts = [];
         this.camera.x = 0; this.camera.y = 0; this.hasKey = false;
         keys.left = false; keys.right = false; keys.up = false; keys.shift = false; upPressed = false;
         
@@ -827,7 +829,6 @@ const game = {
                 if (char === '#' || char === 'D' || char === 'B' || char === 'X' || char === '=') this.blocks.push(new Block(x, y, char));
                 else if (char === 'S') this.spikes.push(new Spike(x, y));
                 else if (char === 'W') this.saws.push(new Sawblade(x, y));
-                else if (char === 'Z') this.shooters.push(new Shooter(x, y));
                 else if (char === '@') { 
                     this.spawnX = x * T_SIZE; this.spawnY = y * T_SIZE; 
                     this.player = new Player(x, y); 
@@ -835,27 +836,24 @@ const game = {
                 else if (char === 'E') this.enemies.push(new Enemy(x, y));
                 else if (char === 'V') this.flyingEnemies.push(new FlyingEnemy(x, y));
                 else if (char === 'F') this.checkpoints.push(new Checkpoint(x, y));
-                else if (char === 'c' || char === 'K' || char === 'O') this.collectibles.push(new Collectible(x, y, char));
+                else if (char === 'c' || char === 'K') this.collectibles.push(new Collectible(x, y, char));
                 else if (char === 'P') this.portal = { x: x * T_SIZE, y: y * T_SIZE - 40, w: 40, h: 80, time: 0 };
             }
         }
-        this.updateHUD(); 
-        this.startTime = Date.now(); 
-        
-        // Zorg dat de delta-tijd reset niet een gigantische sprong maakt na inladen
-        this.lastTime = performance.now();
-        this.accumulator = 0;
-        
-        ui.showScreen(null); 
-        this.state = 'PLAY';
+        this.updateHUD(); this.startTime = Date.now(); ui.showScreen(null); this.state = 'PLAY';
     },
 
     respawnPlayer: function() {
-        this.player.x = this.spawnX; this.player.y = this.spawnY; this.player.vx = 0; this.player.vy = 0; 
-        this.player.isDead = false; this.player.scaleX = 1; this.player.scaleY = 1;
-        this.player.hasShield = false; 
+        this.player.x = this.spawnX;
+        this.player.y = this.spawnY;
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.isDead = false;
+        this.player.scaleX = 1;
+        this.player.scaleY = 1;
         
         this.startTime -= 5000;
+        
         this.floatTexts.push(new FloatingText(this.player.x, this.player.y - 20, "+5 SECONDS!", "#ff0055"));
         this.camera.x = Math.max(0, this.player.x - canvas.width / 2.5);
     },
@@ -868,7 +866,7 @@ const game = {
         });
     },
 
-    gameOver: function() {}, 
+    gameOver: function() {},
 
     winLevel: function() {
         if(this.state === 'WIN') return;
@@ -879,8 +877,6 @@ const game = {
         if(!saveData.bestTimes[this.currentLevelIdx] || endTime < saveData.bestTimes[this.currentLevelIdx]) { saveData.bestTimes[this.currentLevelIdx] = endTime; isNewRecord = true; }
         if (this.currentLevelIdx + 1 >= saveData.unlocked && saveData.unlocked < LEVEL_MAPS.length) { saveData.unlocked++; }
         saveGameData();
-        
-        document.getElementById('resetToggle').classList.add('hidden');
         
         let flash = document.getElementById('flash'); flash.style.opacity = 1;
         
@@ -897,12 +893,11 @@ const game = {
             
             document.getElementById('btnRestart').classList.remove('hidden'); 
             if (this.currentLevelIdx + 1 < LEVEL_MAPS.length) { document.getElementById('btnNext').classList.remove('hidden'); } 
-            else { document.getElementById('resTitle').innerText = "SPEEDRUN GOD!"; document.getElementById('resText').innerText = "Je hebt The Action Update uitgespeeld!"; document.getElementById('btnNext').classList.add('hidden'); }
+            else { document.getElementById('resTitle').innerText = "SPEEDRUN GOD!"; document.getElementById('resText').innerText = "Je hebt alle levels gedomineerd!"; document.getElementById('btnNext').classList.add('hidden'); }
             ui.showScreen('resultMenu');
         }, 500); 
     },
 
-    // DE NIEUWE UPDATE FUNCTIE (Framerate onafhankelijk, 1 vaste tijdstap)
     update: function() {
         if (this.state !== 'PLAY') return;
 
@@ -921,19 +916,15 @@ const game = {
 
         if (this.screenShake > 0) this.screenShake *= 0.85; if (this.screenShake < 0.5) this.screenShake = 0;
 
-        // Geef een dt multiplier mee van 1 aan de objecten (omdat we een vaste tijdstap gebruiken)
-        for (let b of this.blocks) b.update(1); 
-        for (let s of this.saws) s.update(1);
-        for (let z of this.shooters) if (z.x < this.camera.x + 1000) z.update(1);
-        for (let pr of this.projectiles) if (pr.active) pr.update(1);
-        for (let e of this.enemies) if (e.active && e.x < this.camera.x + 1000) e.update(1);
-        for (let fe of this.flyingEnemies) if (fe.active && fe.x < this.camera.x + 1000) fe.update(1);
-        for (let c of this.collectibles) if (c.active) c.update(1);
-        for (let p of this.particles) p.update(1);
-        for (let f of this.floatTexts) f.update(1);
+        for (let b of this.blocks) b.update(); 
+        for (let s of this.saws) s.update();
+        for (let e of this.enemies) if (e.active && e.x < this.camera.x + 1000) e.update();
+        for (let fe of this.flyingEnemies) if (fe.active && fe.x < this.camera.x + 1000) fe.update();
+        for (let c of this.collectibles) if (c.active) c.update();
+        for (let p of this.particles) p.update();
+        for (let f of this.floatTexts) f.update();
         if (this.portal) this.portal.time += 0.1;
 
-        this.projectiles = this.projectiles.filter(pr => pr.active);
         this.enemies = this.enemies.filter(e => e.active);
         this.flyingEnemies = this.flyingEnemies.filter(fe => fe.active);
         this.collectibles = this.collectibles.filter(c => c.active);
@@ -960,8 +951,6 @@ const game = {
         for (let b of this.blocks) b.draw(ctx);
         for (let s of this.spikes) s.draw(ctx);
         for (let w of this.saws) w.draw(ctx);
-        for (let z of this.shooters) z.draw(ctx);
-        for (let pr of this.projectiles) pr.draw(ctx);
         for (let c of this.collectibles) c.draw(ctx);
         for (let e of this.enemies) e.draw(ctx);
         for (let fe of this.flyingEnemies) fe.draw(ctx);
@@ -988,24 +977,7 @@ const game = {
         ctx.fillStyle = vig; ctx.fillRect(0,0, canvas.width, canvas.height);
     },
 
-    // DE NIEUWE LOOP (Framerate Fix)
-    loop: function(timestamp) { 
-        let dt = timestamp - this.lastTime;
-        // Anti-slaapstand beveiliging (als je tabblad wegklikt loopt de dt niet op tot in de duizenden)
-        if (dt > 1000) dt = this.timeStep;
-        
-        this.lastTime = timestamp;
-        this.accumulator += dt;
-
-        // Vaste tijdstap update (altijd exact 60 keer per seconde, ongeacht Hz van monitor)
-        while (this.accumulator >= this.timeStep) {
-            this.update();
-            this.accumulator -= this.timeStep;
-        }
-
-        this.draw(); 
-        requestAnimationFrame(this.loop.bind(this)); 
-    }
+    loop: function() { this.update(); this.draw(); requestAnimationFrame(this.loop.bind(this)); }
 };
 
 window.onload = () => { game.init(); }
